@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f0f23">
+    <title>Chat with Daddy John</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h2>Chat with Daddy John</h2>
+            <button id="logout-button" aria-label="Logout">Logout</button>
+        </header>
+        
+        <main id="chat-window" class="chat-window" role="log" aria-live="polite" aria-label="Chat messages">
+            </main>
+        
+        <footer class="chat-form">
+            <form id="chat-form" role="form">
+                <label for="message-input" class="sr-only">Type your message</label>
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    placeholder="Talk with Daddy John..." 
+                    autocomplete="off" 
+                    required
+                    aria-label="Message input"
+                    maxlength="1000"
+                >
+                <button type="submit" aria-label="Send message">
+                    Send
+                </button>
+            </form>
+        </footer>
+    </div>
+
+    <script type="module" src="/static/chat.js"></script>
+</body>
+</html>
