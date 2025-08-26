@@ -165,9 +165,8 @@ def make_openrouter_request(messages, timeout=25, max_retries=3):
                     "X-Title": "Daddy John Chatbot"
                 },
                 json={
-                    "model": "mistralai/mistral-7b-instruct",
+                    "model": "cognitivecomputations/dolphin3.0-r1-mistral-24b:free",
                     "messages": messages,
-                    "max_tokens": 500,
                     "temperature": 0.7
                 },
                 timeout=timeout

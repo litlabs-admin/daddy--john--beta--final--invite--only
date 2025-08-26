@@ -20,7 +20,11 @@
         
         <footer class="chat-form">
             <form id="chat-form" role="form">
-                <label for="message-input" class="sr-only">Type your message</label>
+                <label for="message-input" class="sr-only"></label>
+                <button type="submit" aria-label="Send message">
+                    Send
+                </button>
+                <button type="button" id="emoji-button" aria-label="Add emoji">😊</button>
                 <input 
                     type="text" 
                     id="message-input" 
@@ -30,10 +34,8 @@
                     aria-label="Message input"
                     maxlength="1000"
                 >
-                <button type="submit" aria-label="Send message">
-                    Send
-                </button>
             </form>
+            <div id="emoji-picker" class="emoji-picker" aria-hidden="true" style="display:none"></div>
         </footer>
     </div>
 

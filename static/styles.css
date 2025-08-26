@@ -43,6 +43,44 @@ body {
     line-height: 1.6;
     overflow-x: hidden;
 }
+/* Optional: Emoji button spacing */
+#emoji-button {
+    margin: 0 8px;
+    width: auto;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    line-height: 1;
+}
+.emoji-picker {
+    z-index: 9999; /* ensure on top */
+  }
+/* Optional: Position footer relative so the absolute picker is anchored well */
+.chat-form {
+    position: relative;
+}
+
+/* Make the inner form a flex row */
+#chat-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+/* Ensure send button keeps the chat style but not full width */
+.chat-form button[type="submit"] {
+    width: auto;
+    min-width: 80px;
+}
+
+/* Emoji picker base (if needed for theme) */
+.emoji-picker {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+}
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {

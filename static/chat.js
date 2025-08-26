@@ -10,6 +10,8 @@ const chatWindow = document.getElementById('chat-window');
 const chatForm = document.getElementById('chat-form');
 const messageInput = document.getElementById('message-input');
 const logoutButton = document.getElementById('logout-button');
+const emojiButton = document.getElementById('emoji-button');
+const emojiPicker = document.getElementById('emoji-picker');
 
 // --- User Authentication and Session Check ---
 let authToken = null;
@@ -97,13 +99,209 @@ async function fetchChatHistory() {
         // For now, just show welcome message
         // In a full implementation, you'd fetch actual chat history from the database
         chatWindow.innerHTML = '';
-        addMessage('assistant', 'Hey there! I\'m Daddy John. What\'s on your mind today?');
+        addMessage('assistant', 'Hey there! I\'m Daddy John. Can you introduce and tell about yourself first?');
         
     } catch (error) {
         console.error('Error fetching history:', error);
         addMessage('assistant', 'Sorry, I couldn\'t load our past chats.');
     }
 }
+
+// --- Emoji Picker Setup ---
+const EMOJIS = [
+  '😀','😁','😂','🤣','😊','😍','😘','😎','🤩','🥳',
+  '🤔','🙃','🙂','😉','🤗','😇','🤝','👍','👎','🙏',
+  '🔥','✨','💯','🎉','🥰','😌','🤤','🤠','😴','🤒',
+  '😢','😭','😤','😡','🤬','🤯','😱','🙌','👏','🤝'
+];
+
+// Recent emojis helpers
+const RECENT_KEY = 'dj_recent_emojis_v1';
+function getRecentEmojis() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.slice(0, 8) : [];
+  } catch { return []; }
+}
+function saveRecentEmojis(arr) {
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(arr.slice(0, 8))); } catch {}
+}
+function addToRecentEmojis(e) {
+  const curr = getRecentEmojis();
+  const filtered = [e, ...curr.filter(x => x !== e)].slice(0, 8);
+  saveRecentEmojis(filtered);
+}
+
+function buildEmojiPicker() {
+  if (!emojiPicker) return;
+  if (emojiPicker.dataset.built === 'true') return;
+  emojiPicker.dataset.built = 'true';
+  emojiPicker.setAttribute('role', 'listbox');
+  emojiPicker.setAttribute('aria-label', 'Emoji picker');
+  emojiPicker.style.position = 'absolute';
+  emojiPicker.style.background = '#fff';
+  emojiPicker.style.border = '1px solid #ddd';
+  emojiPicker.style.borderRadius = '8px';
+  emojiPicker.style.padding = '8px';
+  emojiPicker.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+  emojiPicker.style.maxWidth = '280px';
+  emojiPicker.style.display = 'none';
+  emojiPicker.style.zIndex = '1000';
+  emojiPicker.style.userSelect = 'none';
+  emojiPicker.style.maxHeight = '220px';
+  emojiPicker.style.overflowY = 'auto';
+
+  // Recent row
+  const recentWrap = document.createElement('div');
+  recentWrap.style.display = 'flex';
+  recentWrap.style.flexWrap = 'wrap';
+  recentWrap.style.gap = '8px';
+  recentWrap.style.marginBottom = '6px';
+  recentWrap.setAttribute('data-recent', 'true');
+  emojiPicker.appendChild(recentWrap);
+
+  const hr = document.createElement('div');
+  hr.style.height = '1px';
+  hr.style.background = '#eee';
+  hr.style.margin = '6px 0';
+  emojiPicker.appendChild(hr);
+
+  const grid = document.createElement('div');
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = 'repeat(12, 28px)';
+  grid.style.gridAutoRows = '28px';
+  grid.style.gap = '6px';
+
+  EMOJIS.forEach((e) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = e;
+    btn.setAttribute('aria-label', `Insert ${e}`);
+    btn.style.fontSize = '18px';
+    btn.style.lineHeight = '1';
+    btn.style.padding = '0';
+    btn.style.width = '28px';
+    btn.style.height = '28px';
+    btn.style.display = 'inline-flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.style.cursor = 'pointer';
+    btn.style.border = '1px solid transparent';
+    btn.style.background = 'transparent';
+    btn.style.borderRadius = '6px';
+    btn.addEventListener('click', () => {
+      insertAtCursor(messageInput, e);
+      messageInput.focus();
+      addToRecentEmojis(e);
+      renderRecentEmojis();
+    });
+    grid.appendChild(btn);
+  });
+
+  emojiPicker.appendChild(grid);
+  renderRecentEmojis();
+}
+
+function toggleEmojiPicker() {
+  if (!emojiPicker || !emojiButton) return;
+  buildEmojiPicker();
+  const isHidden = emojiPicker.style.display === 'none' || !emojiPicker.style.display;
+  if (isHidden) {
+    // Show to measure exact size
+    emojiPicker.style.visibility = 'hidden';
+    emojiPicker.style.display = 'block';
+    // Ensure picker width fits 12 columns
+    // Let content define width; we'll clamp horizontally
+    const container = emojiButton.offsetParent || document.body;
+    const containerWidth = container.clientWidth || window.innerWidth;
+    const pickerW = emojiPicker.offsetWidth;
+    const pickerH = emojiPicker.offsetHeight;
+
+    // Always open upward: bottom edge aligns with button top
+    const desiredTop = emojiButton.offsetTop - pickerH - 8;
+    let left = emojiButton.offsetLeft; // default left aligned to button
+    // Clamp horizontally within container
+    if (left + pickerW > containerWidth - 8) {
+      left = Math.max(8, containerWidth - pickerW - 8);
+    }
+    if (left < 8) left = 8;
+
+    emojiPicker.style.top = `${Math.max(0, desiredTop)}px`;
+    emojiPicker.style.left = `${left}px`;
+    emojiPicker.style.visibility = '';
+    emojiPicker.style.display = 'block';
+    emojiPicker.setAttribute('aria-hidden', 'false');
+  } else {
+    emojiPicker.style.display = 'none';
+    emojiPicker.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function insertAtCursor(input, text) {
+  if (!input) return;
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  const before = input.value.slice(0, start);
+  const after = input.value.slice(end);
+  // Enforce maxlength without changing existing validation logic
+  const maxLen = parseInt(input.getAttribute('maxlength') || '1000', 10);
+  const currentLen = (before + after).length;
+  const remaining = maxLen - currentLen;
+  const toInsert = text.slice(0, Math.max(0, remaining));
+  input.value = before + toInsert + after;
+  const pos = start + toInsert.length;
+  input.setSelectionRange(pos, pos);
+}
+
+function renderRecentEmojis() {
+  if (!emojiPicker) return;
+  const recentWrap = emojiPicker.querySelector('[data-recent="true"]');
+  if (!recentWrap) return;
+  recentWrap.innerHTML = '';
+  const recents = getRecentEmojis();
+  if (!recents.length) return;
+  recents.forEach((e) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = e;
+    btn.style.fontSize = '18px';
+    btn.style.padding = '0';
+    btn.style.width = '28px';
+    btn.style.height = '28px';
+    btn.style.display = 'inline-flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.style.border = '1px solid transparent';
+    btn.style.background = 'transparent';
+    btn.style.borderRadius = '6px';
+    btn.addEventListener('click', () => {
+      insertAtCursor(messageInput, e);
+      messageInput.focus();
+      addToRecentEmojis(e);
+      renderRecentEmojis();
+    });
+    recentWrap.appendChild(btn);
+  });
+}
+
+// Toggle picker
+if (emojiButton) {
+  emojiButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleEmojiPicker();
+  });
+}
+
+// Hide picker when clicking outside
+document.addEventListener('click', (e) => {
+  if (!emojiPicker || emojiPicker.style.display === 'none') return;
+  if (e.target === emojiPicker || emojiPicker.contains(e.target)) return;
+  if (e.target === emojiButton) return;
+  emojiPicker.style.display = 'none';
+  emojiPicker.setAttribute('aria-hidden', 'true');
+});
 
 // --- Event Listeners ---
 chatForm.addEventListener('submit', async (e) => {
@@ -165,6 +363,10 @@ chatForm.addEventListener('submit', async (e) => {
     } finally {
         messageInput.disabled = false;
         messageInput.focus();
+        if (emojiPicker) {
+            emojiPicker.style.display = 'none';
+            emojiPicker.setAttribute('aria-hidden', 'true');
+        }
     }
 });
 
