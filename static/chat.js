@@ -12,20 +12,28 @@ const messageInput = document.getElementById('message-input');
 const logoutButton = document.getElementById('logout-button');
 
 // --- User Authentication and Session Check ---
-let session = null;
+let authToken = null;
+let userData = null;
 
 async function checkSession() {
     try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data.session) {
-            console.error('Session error:', error);
+        authToken = localStorage.getItem('auth_token');
+        const userDataStr = localStorage.getItem('user_data');
+        
+        if (!authToken || !userDataStr) {
+            console.error('No authentication token or user data found');
             window.location.href = '/'; // Redirect to login if not authenticated
-        } else {
-            session = data.session;
-            fetchChatHistory(); // Load history once session is confirmed
+            return;
         }
+        
+        userData = JSON.parse(userDataStr);
+        
+        // Verify token is still valid by fetching chat history
+        await fetchChatHistory();
     } catch (error) {
         console.error('Session check failed:', error);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
         window.location.href = '/';
     }
 }
@@ -67,25 +75,32 @@ function hideTypingIndicator() {
 
 async function fetchChatHistory() {
     try {
-        // Fetch past messages from the database
-        const { data: messages, error } = await supabase
-            .from('messages')
-            .select('role, content')
-            .order('created_at');
+        // For now, we'll fetch messages through a test API call
+        // In a full implementation, you might want a separate endpoint for chat history
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ message: '' }) // Empty message to just get history
+        });
 
-        if (error) {
-            console.error('Error fetching history:', error);
-            addMessage('assistant', 'Sorry, I couldn\'t load our past chats.');
-        } else {
-            chatWindow.innerHTML = ''; // Clear window before loading
-            if (messages && messages.length > 0) {
-                messages.forEach(msg => addMessage(msg.role, msg.content));
-            } else {
-                addMessage('assistant', 'Hey there! I\'m Daddy John. What\'s on your mind today?');
-            }
+        if (response.status === 401) {
+            // Token is invalid
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
         }
+
+        // For now, just show welcome message
+        // In a full implementation, you'd fetch actual chat history from the database
+        chatWindow.innerHTML = '';
+        addMessage('assistant', 'Hey there! I\'m Daddy John. What\'s on your mind today?');
+        
     } catch (error) {
-        console.error('Unexpected error fetching history:', error);
+        console.error('Error fetching history:', error);
         addMessage('assistant', 'Sorry, I couldn\'t load our past chats.');
     }
 }
@@ -113,7 +128,7 @@ chatForm.addEventListener('submit', async (e) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
+                'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify({ message: message })
         });
@@ -139,6 +154,8 @@ chatForm.addEventListener('submit', async (e) => {
         let errorMessage = "Oh, crumbs. Something went wrong on my end, kiddo.";
         if (error.message.includes('401') || error.message.includes('unauthorized')) {
             errorMessage = "Your session has expired. Please log in again.";
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
             setTimeout(() => window.location.href = '/', 2000);
         } else if (error.message.includes('503') || error.message.includes('unavailable')) {
             errorMessage = "I'm having trouble thinking right now. Give me a moment and try again.";
@@ -161,7 +178,8 @@ messageInput.addEventListener('keydown', (e) => {
 
 logoutButton.addEventListener('click', async () => {
     try {
-        await supabase.auth.signOut();
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
         window.location.href = '/';
     } catch (error) {
         console.error('Logout error:', error);
